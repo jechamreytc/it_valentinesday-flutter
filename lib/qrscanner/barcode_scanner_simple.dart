@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:it_valentinesday/matchpakyo.dart';
 import 'package:it_valentinesday/session_storage.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
@@ -55,6 +56,10 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple> {
         setState(() {
           resultMessage = matchResult['match'] ? 'Match!' : 'No match.';
         });
+
+        if (matchResult['match']) {
+          _notifyBothUsers();
+        }
       } else {
         setState(() {
           resultMessage = 'Invalid QR code.';
@@ -88,6 +93,30 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple> {
     } catch (e) {
       print(e);
       return {"status": 0, "match": false}; // Return a default error response
+    }
+  }
+
+  // Notify both users if there is a match
+  void _notifyBothUsers() async {
+    try {
+      final url = Uri.parse("${SessionStorage.url}get_match_status.php");
+      final response = await http.post(url, body: {
+        'operation': 'getMatchStatus',
+      });
+      final data = jsonDecode(response.body);
+
+      if (data['match'] == true) {
+        // setState(() {
+        //   resultMessage = 'Match!';
+        // });
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => Matchpakyo(),
+          ),
+        );
+      }
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -129,8 +158,13 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple> {
                 children: [
                   _buildBarcode(_barcode),
                   if (resultMessage.isNotEmpty)
-                    Text(resultMessage,
-                        style: TextStyle(fontSize: 24, color: Colors.white)),
+                    Text(
+                      resultMessage,
+                      style: TextStyle(
+                        fontSize: 24,
+                        color: Colors.white,
+                      ),
+                    ),
                 ],
               ),
             ),

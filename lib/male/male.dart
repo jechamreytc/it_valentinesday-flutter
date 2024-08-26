@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:it_valentinesday/matchpakyo.dart';
 import 'package:it_valentinesday/qrscanner/barcode_scanner_simple.dart';
 import 'package:it_valentinesday/session_storage.dart';
 // import 'package:qr_bar_code/code/code.dart';
@@ -23,11 +25,24 @@ class Male extends StatefulWidget {
 class _MaleState extends State<Male> {
   String id = "";
   bool isIdFetched = false;
+  Timer? _matchStatusTimer;
 
   @override
   void initState() {
     super.initState();
     getId(); // Fetch the ID when the widget is initialized
+
+    // Start polling for match status updates
+    _matchStatusTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+      _checkMatchStatus();
+    });
+  }
+
+  @override
+  void dispose() {
+    // Clean up the timer when the widget is disposed
+    _matchStatusTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -43,15 +58,15 @@ class _MaleState extends State<Male> {
                 Text('Male'),
                 Text('Hello ' + widget.name + '!'),
                 if (id.isNotEmpty) ...[
-                  Text('Your ID: $id'), // Display the fetched ID
+                  Text('Your ID: $id'),
                   SizedBox(height: 20),
                   Container(
                     width: 300,
                     height: 300,
                     child: QRCode(data: id),
-                  ), // Insert the ID into the QR code
+                  ),
                 ] else ...[
-                  CircularProgressIndicator(), // Show a loading indicator while fetching the ID
+                  CircularProgressIndicator(),
                 ],
                 SizedBox(height: 20),
                 ElevatedButton(
@@ -64,7 +79,6 @@ class _MaleState extends State<Male> {
                         ),
                       );
                     } else {
-                      // Optionally, you can show an error message if the ID is not available
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Please wait until the ID is fetched.'),
@@ -98,11 +112,37 @@ class _MaleState extends State<Male> {
 
       if (responseData['status'] == 1) {
         setState(() {
-          id = responseData['id'].toString(); // Update the ID in the state
-          isIdFetched = true; // Indicate that the ID is fetched
+          id = responseData['id'].toString();
+          isIdFetched = true;
         });
       } else {
         print("Failed to fetch ID: ${responseData['message']}");
+      }
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
+
+  void _checkMatchStatus() async {
+    try {
+      var url = Uri.parse("${SessionStorage.url}get_match_status.php");
+      Map<String, String> requestBody = {
+        "operation": "getMatchStatus",
+      };
+
+      var response = await http.post(url, body: requestBody);
+      var responseData = jsonDecode(response.body);
+
+      if (responseData['match'] == true) {
+        setState(() {
+          id = responseData['id'].toString();
+        });
+        print("Match found with ID: $id");
+        // Navigator.of(context).push(
+        //   MaterialPageRoute(
+        //     builder: (context) => Matchpakyo(),
+        //   ),
+        // );
       }
     } catch (e) {
       print("Error: $e");

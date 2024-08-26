@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:it_valentinesday/female/female.dart';
 import 'package:it_valentinesday/male/male.dart';
-import 'package:it_valentinesday/qrscanner/barcode_scanner_simple.dart';
 import 'package:it_valentinesday/session_storage.dart';
 import 'package:http/http.dart' as http;
 
@@ -17,7 +16,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: BarcodeScannerSimple(myId: '', gender: ''),
+      home: HomePage(),
     );
   }
 }

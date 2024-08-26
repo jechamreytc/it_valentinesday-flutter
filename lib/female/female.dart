@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:it_valentinesday/matchpakyo.dart';
 import 'package:it_valentinesday/qrscanner/barcode_scanner_simple.dart';
 import 'package:it_valentinesday/session_storage.dart';
 import 'package:qr_bar_code/qr/qr.dart'; // Ensure this package is included
@@ -22,11 +24,24 @@ class Female extends StatefulWidget {
 class _FemaleState extends State<Female> {
   String id = "";
   bool isIdFetched = false;
+  Timer? _matchStatusTimer; // Add a Timer instance
 
   @override
   void initState() {
     super.initState();
     getId(); // Fetch the ID when the widget is initialized
+
+    // Start polling for match status updates
+    _matchStatusTimer = Timer.periodic(Duration(seconds: 5), (timer) {
+      _checkMatchStatus();
+    });
+  }
+
+  @override
+  void dispose() {
+    // Clean up the timer when the widget is disposed
+    _matchStatusTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -63,7 +78,6 @@ class _FemaleState extends State<Female> {
                         ),
                       );
                     } else {
-                      // Optionally, you can show an error message if the ID is not available
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text('Please wait until the ID is fetched.'),
@@ -102,6 +116,33 @@ class _FemaleState extends State<Female> {
         });
       } else {
         print("Failed to fetch ID: ${responseData['message']}");
+      }
+    } catch (e) {
+      print("Error: $e");
+    }
+  }
+
+  void _checkMatchStatus() async {
+    try {
+      var url = Uri.parse("${SessionStorage.url}get_match_status.php");
+      Map<String, String> requestBody = {
+        "operation": "getMatchStatus",
+      };
+
+      var response = await http.post(url, body: requestBody);
+      var responseData = jsonDecode(response.body);
+
+      if (responseData['match'] == true) {
+        setState(() {
+          id =
+              responseData['id'].toString(); // Update the ID if there's a match
+        });
+        print("Match found with ID: $id");
+        // Navigator.of(context).push(
+        //   MaterialPageRoute(
+        //     builder: (context) => Matchpakyo(),
+        //   ),
+        // );
       }
     } catch (e) {
       print("Error: $e");
