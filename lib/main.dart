@@ -35,60 +35,129 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.pink.shade50,
       body: Center(
-        child: Column(
-          children: [
-            TextField(
-              controller: _fullnamecontroller,
-              decoration: const InputDecoration(
-                labelText: 'Full Name',
-              ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            TextField(
-              controller: _idnumberController,
-              decoration: const InputDecoration(
-                labelText: '02-xxxxxxx-xxxx',
-              ),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: ListTile(
-                    title: Text('Male'),
-                    leading: Radio<String>(
-                      value: 'Male',
-                      groupValue: _selectedGender,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedGender = value!;
-                        });
-                      },
+            color: Colors.white,
+            elevation: 10,
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Fill Your Love Profile',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.pink.shade400,
                     ),
                   ),
-                ),
-                Expanded(
-                  child: ListTile(
-                    title: Text('Female'),
-                    leading: Radio<String>(
-                      value: 'Female',
-                      groupValue: _selectedGender,
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedGender = value!;
-                        });
-                      },
+                  SizedBox(height: 20),
+                  TextField(
+                    controller: _fullnamecontroller,
+                    decoration: InputDecoration(
+                      labelText: 'Full Name',
+                      labelStyle: TextStyle(color: Colors.pink.shade300),
+                      prefixIcon:
+                          Icon(Icons.person, color: Colors.pink.shade300),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.pink.shade300),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.pink.shade100),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  SizedBox(height: 20),
+                  TextField(
+                    controller: _idnumberController,
+                    decoration: InputDecoration(
+                      labelText: '02-xxxxxxx-xxxx',
+                      labelStyle: TextStyle(color: Colors.pink.shade300),
+                      prefixIcon: Icon(Icons.perm_identity,
+                          color: Colors.pink.shade300),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.pink.shade300),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.pink.shade100),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ListTile(
+                          title: Text(
+                            'Are you looking for a Girl?',
+                            style: TextStyle(color: Colors.pink.shade400),
+                          ),
+                          leading: Radio<String>(
+                            value: 'Male',
+                            groupValue: _selectedGender,
+                            activeColor: Colors.pink.shade300,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedGender = value!;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: ListTile(
+                          title: Text(
+                            'Are you looking for a Boy?',
+                            style: TextStyle(color: Colors.pink.shade400),
+                          ),
+                          leading: Radio<String>(
+                            value: 'Female',
+                            groupValue: _selectedGender,
+                            activeColor: Colors.pink.shade300,
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedGender = value!;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      create();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.pink.shade300,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 50, vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: Text(
+                      "Create",
+                      style: TextStyle(fontSize: 18),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            ElevatedButton(
-              onPressed: () {
-                create();
-              },
-              child: const Text("Create"),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -113,10 +182,14 @@ class _HomePageState extends State<HomePage> {
                 ? Male(
                     name: _fullnamecontroller.text,
                     gender: _selectedGender,
+                    myText: '',
+                    showMatchImage: false,
                   )
                 : Female(
                     name: _fullnamecontroller.text,
                     gender: _selectedGender,
+                    myText: '',
+                    showMatchImage: false,
                   ),
           ),
         );
@@ -128,44 +201,5 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       print(e);
     }
-
-    // try {
-    //   var url;
-    //   if (_selectedGender == 'Male') {
-    //     url = Uri.parse("${SessionStorage.url}male.php");
-    //   } else if (_selectedGender == 'Female') {
-    //     url = Uri.parse("${SessionStorage.url}female.php");
-    //   } else {
-    //     print("Gender not selected");
-    //     return;
-    //   }
-
-    //   Map<String, dynamic> jsonData = {
-    //     "full_name": _fullnamecontroller.text,
-    //     "id_number": _idnumberController.text,
-    //     "gender": _selectedGender
-    //   };
-
-    //   var response = await http.post(
-    //     url,
-    //     body: jsonEncode(jsonData),
-    //     headers: {"Content-Type": "application/json"},
-    //   );
-
-    //   var res = jsonDecode(response.body);
-
-    //   if (res['status'] == 1) {
-    //     Navigator.pushReplacement(
-    //       context,
-    //       MaterialPageRoute(
-    //         builder: (context) => _selectedGender == 'Male' ? Male() : Female(),
-    //       ),
-    //     );
-    //   } else {
-    //     print("Error: ${res['message']}");
-    //   }
-    // } catch (e) {
-    //   print("Exception: $e");
-    // }
   }
 }

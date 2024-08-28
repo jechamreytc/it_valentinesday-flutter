@@ -1,20 +1,22 @@
 import 'dart:convert';
-import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
-import 'package:it_valentinesday/matchpakyo.dart';
 import 'package:it_valentinesday/qrscanner/barcode_scanner_simple.dart';
 import 'package:it_valentinesday/session_storage.dart';
-import 'package:qr_bar_code/qr/qr.dart'; // Ensure this package is included
+import 'package:qr_bar_code/qr/qr.dart';
 
 class Female extends StatefulWidget {
   final String name;
   final String gender;
+  final String myText;
+  final bool showMatchImage;
 
   const Female({
     Key? key,
     required this.name,
     required this.gender,
+    required this.myText,
+    required this.showMatchImage,
   }) : super(key: key);
 
   @override
@@ -24,23 +26,15 @@ class Female extends StatefulWidget {
 class _FemaleState extends State<Female> {
   String id = "";
   bool isIdFetched = false;
-  Timer? _matchStatusTimer; // Add a Timer instance
 
   @override
   void initState() {
     super.initState();
     getId(); // Fetch the ID when the widget is initialized
-
-    // Start polling for match status updates
-    _matchStatusTimer = Timer.periodic(Duration(seconds: 5), (timer) {
-      _checkMatchStatus();
-    });
   }
 
   @override
   void dispose() {
-    // Clean up the timer when the widget is disposed
-    _matchStatusTimer?.cancel();
     super.dispose();
   }
 
@@ -54,39 +48,56 @@ class _FemaleState extends State<Female> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Female'),
-                Text('Hello ' + widget.name + '!'),
-                if (id.isNotEmpty) ...[
-                  Text('Your ID: $id'), // Display the fetched ID
+                if (widget.showMatchImage) ...[
+                  // Show the image if showImage or showMatchImage is true
                   SizedBox(height: 20),
-                  Container(
-                    width: 300,
-                    height: 300,
-                    child: QRCode(data: id),
-                  ), // Insert the ID into the QR code
+                  Image.asset(
+                    'assets/images/heart.jpg',
+                    height: 100,
+                    width: 100,
+                  ),
                 ] else ...[
-                  CircularProgressIndicator(), // Show a loading indicator while fetching the ID
+                  // Only show these widgets if showImage is false and showMatchImage is false
+                  Text('Female'),
+                  Text('Hello ' + widget.name + '!'),
+                  if (id.isNotEmpty) ...[
+                    Text('Your ID: $id'),
+                    SizedBox(height: 20),
+                    Container(
+                      width: 300,
+                      height: 300,
+                      child: QRCode(data: id),
+                    ),
+                  ] else ...[
+                    CircularProgressIndicator(),
+                  ],
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () {
+                      if (id.isNotEmpty) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => BarcodeScannerSimple(
+                              myId: id,
+                              gender: widget.gender,
+                              name: widget.name,
+                            ),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content:
+                                Text('Please wait until the ID is fetched.'),
+                          ),
+                        );
+                      }
+                    },
+                    child: Text('Scan QR Code'),
+                  ),
+                  SizedBox(height: 20),
+                  Text(widget.myText),
                 ],
-                SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () {
-                    if (id.isNotEmpty) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => BarcodeScannerSimple(
-                              myId: id, gender: widget.gender),
-                        ),
-                      );
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Please wait until the ID is fetched.'),
-                        ),
-                      );
-                    }
-                  },
-                  child: Text('Scan QR Code'),
-                ),
               ],
             ),
           ),
@@ -111,38 +122,11 @@ class _FemaleState extends State<Female> {
 
       if (responseData['status'] == 1) {
         setState(() {
-          id = responseData['id'].toString(); // Update the ID in the state
-          isIdFetched = true; // Indicate that the ID is fetched
+          id = responseData['id'].toString();
+          isIdFetched = true;
         });
       } else {
         print("Failed to fetch ID: ${responseData['message']}");
-      }
-    } catch (e) {
-      print("Error: $e");
-    }
-  }
-
-  void _checkMatchStatus() async {
-    try {
-      var url = Uri.parse("${SessionStorage.url}get_match_status.php");
-      Map<String, String> requestBody = {
-        "operation": "getMatchStatus",
-      };
-
-      var response = await http.post(url, body: requestBody);
-      var responseData = jsonDecode(response.body);
-
-      if (responseData['match'] == true) {
-        setState(() {
-          id =
-              responseData['id'].toString(); // Update the ID if there's a match
-        });
-        print("Match found with ID: $id");
-        // Navigator.of(context).push(
-        //   MaterialPageRoute(
-        //     builder: (context) => Matchpakyo(),
-        //   ),
-        // );
       }
     } catch (e) {
       print("Error: $e");

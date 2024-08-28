@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:it_valentinesday/matchpakyo.dart';
+import 'package:it_valentinesday/male/male.dart';
+import 'package:it_valentinesday/female/female.dart';
 import 'package:it_valentinesday/session_storage.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
@@ -9,11 +10,13 @@ import 'dart:ui';
 class BarcodeScannerSimple extends StatefulWidget {
   final String myId; // The ID of the user scanning the QR code
   final String gender;
+  final String name;
 
   const BarcodeScannerSimple({
     Key? key,
     required this.myId,
     required this.gender,
+    required this.name,
   }) : super(key: key);
 
   @override
@@ -27,16 +30,8 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple> {
 
   // Builds the barcode display widget
   Widget _buildBarcode(Barcode? value) {
-    if (value == null) {
-      return const Text(
-        'Find Your Partner',
-        overflow: TextOverflow.fade,
-        style: TextStyle(color: Colors.white),
-      );
-    }
-
     return Text(
-      value.displayValue ?? 'No display value.',
+      value?.displayValue ?? 'Find Your Partner',
       overflow: TextOverflow.fade,
       style: const TextStyle(color: Colors.white),
     );
@@ -44,21 +39,47 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple> {
 
   // Handles the barcode detection logic
   void _handleBarcode(BarcodeCapture barcodes) async {
-    if (!isProcessing) {
+    if (!isProcessing && barcodes.barcodes.isNotEmpty) {
       setState(() {
         isProcessing = true;
+        _barcode = barcodes.barcodes.first; // Update the barcode to display
       });
 
-      final scannedId = barcodes.barcodes.first.displayValue ?? '';
+      final scannedId = _barcode?.displayValue ?? '';
       if (scannedId.isNotEmpty) {
-        final matchResult = await _checkMatch(scannedId);
+        try {
+          final matchResult = await _checkMatch(scannedId);
 
-        setState(() {
-          resultMessage = matchResult['match'] ? 'Match!' : 'No match.';
-        });
-
-        if (matchResult['match']) {
-          _notifyBothUsers();
+          setState(() {
+            if (matchResult['status'] == 1 && matchResult['match']) {
+              resultMessage = 'Match! Both users have been notified.';
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => widget.gender == 'male'
+                      ? Male(
+                          name: widget.name,
+                          gender: widget.gender,
+                          myText: "Match Found", showMatchImage: true,
+                        )
+                      : Female(
+                          name: widget.name,
+                          gender: widget.gender,
+                          myText: "Match Found", showMatchImage: true,
+                        ),
+                ),
+              );
+            } else {
+              resultMessage = matchResult['status'] == 1
+                  ? 'No match.'
+                  : 'Error: ${matchResult['message'] ?? 'Unknown error'}';
+            }
+          });
+        } catch (e) {
+          setState(() {
+            resultMessage = 'Failed to check match. Please try again.';
+          });
+          print('Error during _checkMatch: $e');
         }
       } else {
         setState(() {
@@ -75,48 +96,24 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple> {
   // Checks if the scanned ID matches the current user's ID
   Future<Map<String, dynamic>> _checkMatch(String scannedId) async {
     try {
-      var url = Uri.parse("${SessionStorage.url}save_data.php");
-      Map<String, dynamic> jsonData = {
+      final url = Uri.parse("${SessionStorage.url}save_data.php");
+      final jsonData = {
         "id": scannedId,
-        "userId": widget.myId, // Include the current user's ID
+        "gender": widget.gender,
       };
 
-      Map<String, String> requestBody = {
-        "operation": "checkMatch",
-        "json": jsonEncode(jsonData),
-      };
+      final response = await http.post(
+        url,
+        body: {
+          "operation": "checkMatch",
+          "json": jsonEncode(jsonData),
+        },
+      );
 
-      var response = await http.post(url, body: requestBody);
-      var res = jsonDecode(response.body);
-
-      return res;
+      return jsonDecode(response.body);
     } catch (e) {
-      print(e);
-      return {"status": 0, "match": false}; // Return a default error response
-    }
-  }
-
-  // Notify both users if there is a match
-  void _notifyBothUsers() async {
-    try {
-      final url = Uri.parse("${SessionStorage.url}get_match_status.php");
-      final response = await http.post(url, body: {
-        'operation': 'getMatchStatus',
-      });
-      final data = jsonDecode(response.body);
-
-      if (data['match'] == true) {
-        // setState(() {
-        //   resultMessage = 'Match!';
-        // });
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => Matchpakyo(),
-          ),
-        );
-      }
-    } catch (e) {
-      print(e);
+      print('Error in _checkMatch: $e');
+      return {"status": 0, "message": "Failed to communicate with the server"};
     }
   }
 
