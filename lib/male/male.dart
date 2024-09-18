@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:it_valentinesday/main.dart';
 import 'package:it_valentinesday/qrscanner/barcode_scanner_simple.dart';
 import 'package:it_valentinesday/session_storage.dart';
 import 'package:qr_bar_code/qr/qr.dart'; // Ensure this package is included
@@ -9,13 +10,16 @@ class Male extends StatefulWidget {
   final String name;
   final String gender;
   final String myText;
+  final String idNumber;
   final bool showMatchImage;
 
   const Male({
     Key? key,
     required this.name,
     required this.gender,
-    required this.myText, required this.showMatchImage,
+    required this.myText,
+    required this.showMatchImage,
+    required this.idNumber,
   }) : super(key: key);
 
   @override
@@ -25,7 +29,9 @@ class Male extends StatefulWidget {
 class _MaleState extends State<Male> {
   String id = "";
   bool isIdFetched = false;
-// Track whether to show the match image
+
+  final TextEditingController _passwordDifferentAccountController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -35,47 +41,126 @@ class _MaleState extends State<Male> {
 
   @override
   void dispose() {
+    _passwordDifferentAccountController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (widget.showMatchImage) ...[
-                  // Show the image if showImage or showMatchImage is true
-                  SizedBox(height: 20),
-                  Image.asset(
-                    'assets/images/heart.jpg',
-                    height: 100,
-                    width: 100,
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(
+                'assets/images/MBg.gif'), // Replace with your image path
+            fit: BoxFit.cover, // Ensures the image covers the entire screen
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Title with heart icon
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.favorite, color: Colors.blue, size: 30),
+                      SizedBox(width: 10),
+                      Text(
+                        'Hello, ${widget.name}!',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      SizedBox(width: 10),
+                      Icon(Icons.favorite, color: Colors.blue, size: 30),
+                    ],
                   ),
-                ] else ...[
-                  // Only show these widgets if showImage is false and showMatchImage is false
-                  Text('Male'),
-                  Text('Hello ' + widget.name + '!'),
+                  SizedBox(height: 10),
+                  Text(
+                    'Male',
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    widget.idNumber,
+                    style: TextStyle(
+                      fontSize: 20,
+                      color: Colors.blueAccent,
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  // QR Code Card with "Scan me for your partner" text
                   if (id.isNotEmpty) ...[
-                    Text('Your ID: $id'),
-                    SizedBox(height: 20),
-                    Container(
-                      width: 300,
-                      height: 300,
-                      child: QRCode(data: id),
+                    Text(
+                      'Scan me for your partner',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        foreground: Paint()
+                          ..shader = LinearGradient(
+                            colors: <Color>[
+                              Colors.blue,
+                              Colors.blueAccent,
+                            ],
+                          ).createShader(Rect.fromLTWH(0.0, 0.0, 200.0, 70.0)),
+                        shadows: [
+                          Shadow(
+                            blurRadius: 10.0,
+                            color: Colors.black26,
+                            offset: Offset(2.0, 2.0),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      elevation: 5,
+                      shadowColor: Colors.blueAccent,
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 200,
+                              height: 200,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  QRCode(data: id),
+                                  Icon(Icons.favorite,
+                                      color:
+                                          const Color.fromARGB(255, 206, 25, 12)
+                                              .withOpacity(0.3),
+                                      size: 200),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ] else ...[
                     CircularProgressIndicator(),
                   ],
                   SizedBox(height: 20),
-                  ElevatedButton(
+
+                  // Scan QR Code Button with heart icon
+                  ElevatedButton.icon(
                     onPressed: () {
                       if (id.isNotEmpty) {
-                        Navigator.of(context).pushReplacement(
+                        Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) => BarcodeScannerSimple(
                               myId: id,
@@ -93,12 +178,25 @@ class _MaleState extends State<Male> {
                         );
                       }
                     },
-                    child: Text('Scan QR Code'),
+                    style: ElevatedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      backgroundColor: Colors.blueAccent, // Background color
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 15,
+                      ),
+                      textStyle: TextStyle(
+                        fontSize: 18,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    icon: Icon(Icons.favorite),
+                    label: Text('Scan QR Code'),
                   ),
-                  SizedBox(height: 20),
-                  Text(widget.myText),
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -132,5 +230,4 @@ class _MaleState extends State<Male> {
       print("Error: $e");
     }
   }
-
 }

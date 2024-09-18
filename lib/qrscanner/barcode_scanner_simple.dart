@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:it_valentinesday/male/male.dart';
-import 'package:it_valentinesday/female/female.dart';
+import 'package:it_valentinesday/match.dart';
+import 'package:it_valentinesday/not_match.dart';
 import 'package:it_valentinesday/session_storage.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
@@ -27,6 +27,7 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple> {
   Barcode? _barcode;
   String resultMessage = '';
   bool isProcessing = false;
+  bool isScanning = true; // Flag to control the scanning state
 
   // Builds the barcode display widget
   Widget _buildBarcode(Barcode? value) {
@@ -39,7 +40,7 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple> {
 
   // Handles the barcode detection logic
   void _handleBarcode(BarcodeCapture barcodes) async {
-    if (!isProcessing && barcodes.barcodes.isNotEmpty) {
+    if (!isProcessing && barcodes.barcodes.isNotEmpty && isScanning) {
       setState(() {
         isProcessing = true;
         _barcode = barcodes.barcodes.first; // Update the barcode to display
@@ -50,31 +51,37 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple> {
         try {
           final matchResult = await _checkMatch(scannedId);
 
-          setState(() {
-            if (matchResult['status'] == 1 && matchResult['match']) {
-              resultMessage = 'Match! Both users have been notified.';
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => widget.gender == 'male'
-                      ? Male(
-                          name: widget.name,
-                          gender: widget.gender,
-                          myText: "Match Found", showMatchImage: true,
-                        )
-                      : Female(
-                          name: widget.name,
-                          gender: widget.gender,
-                          myText: "Match Found", showMatchImage: true,
-                        ),
-                ),
-              );
-            } else {
-              resultMessage = matchResult['status'] == 1
-                  ? 'No match.'
-                  : 'Error: ${matchResult['message'] ?? 'Unknown error'}';
-            }
-          });
+          setState(
+            () {
+              if (matchResult['status'] == 1) {
+                if (matchResult['match'] == true) {
+                  // Stop scanning and navigate to Match
+                  isScanning = false;
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => Match(),
+                    ),
+                  );
+                }
+              } else if (matchResult['status'] == 0) {
+                if (matchResult['match'] == false) {
+                  // Stop scanning and navigate to NotMatch
+                  isScanning = false;
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NotMatch(),
+                    ),
+                  );
+                }
+              } else {
+                // Handle error case
+                resultMessage =
+                    'Error: ${matchResult['message'] ?? 'Unknown error'}';
+              }
+            },
+          );
         } catch (e) {
           setState(() {
             resultMessage = 'Failed to check match. Please try again.';
@@ -122,10 +129,11 @@ class _BarcodeScannerSimpleState extends State<BarcodeScannerSimple> {
     return Scaffold(
       body: Stack(
         children: [
-          // Mobile Scanner to detect QR codes
-          MobileScanner(
-            onDetect: _handleBarcode,
-          ),
+          // Conditionally render MobileScanner based on isScanning flag
+          if (isScanning)
+            MobileScanner(
+              onDetect: _handleBarcode,
+            ),
           // Blurred background outside the scan area
           BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
